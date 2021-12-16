@@ -13,6 +13,7 @@ BLUE  = (0,0,255)
 BLACK = (0,0,0)
 MAGENTA = (255,0,255)
 CYAN = (0,255,255)
+YELLOW = (255,255,0)
 
 def parse_style(string):
     attributes = string.split(';')
@@ -41,6 +42,9 @@ def get_line_type(attr):
         
         elif color==RED:
             return "release", color
+
+        elif color==YELLOW:
+            return "origin", color
         
         elif color==BLACK:
             return "move_vertical", color
@@ -120,11 +124,11 @@ def find_order(paths, start, tol=0.001):
 
 # Load the image
 image_file='test_traj.svg'
-out_file ='flip_handle.yaml'
+out_file ='../hand_arm_cbt/traj_setup/rethi/tasks/flip_handle.yaml'
 paths, attributes, svg_attributes = svgpathtools.svg2paths2(image_file)
 plots_on=True
 operating_plane = 'xz'
-plane_dist = 600
+plane_dist = 250
 unit_conversion = 0.001 # [mm to m]
 
 
@@ -157,9 +161,9 @@ for path, attr in zip(paths,attributes):
                 
                 xy_pts.extend(entity.point(span))
 
-                if 'normal' in line_type:
+                if 'normalXXX' in line_type:
                     normals = entity.normal(span)
-                    angles = [np.arctan2(normal.imag, normal.real) for normal in normals]
+                    angles = [np.arctan2(-normal.imag, normal.real) for normal in normals]
                     rot_pts_deg = np.rad2deg(angles)
                     rot_pts.extend(rot_pts_deg.tolist())
 
@@ -169,12 +173,12 @@ for path, attr in zip(paths,attributes):
                     else:
                         tangents = entity.unit_tangent(span)
                     print(tangents)
-                    angles = [np.arctan2(tangent.imag, tangent.real) for tangent in tangents]
+                    angles = [np.arctan2(-tangent.imag, tangent.real) for tangent in tangents]
                     rot_pts_deg = np.rad2deg(angles)
                     rot_pts.extend(rot_pts_deg.tolist())
 
                 else:
-                    rot_pts.extend([-90.0]*len(span))
+                    rot_pts.extend([90.0]*len(span))
             
             #print(len(xy_pts))
             x = [ele.real for ele in xy_pts]
@@ -193,8 +197,20 @@ for pt in special_points:
         start_point = pt['point']
         break
 
+origin = None
+for pt in special_points:
+    if pt['type'] == 'origin':
+        origin = copy.deepcopy(pt['point'])
+        break
+
 if start_point is not None:
     trajectories = find_order(trajectories,start_point)
+
+for traj in trajectories:
+    traj['position'] = traj['position']-origin
+
+for pt in special_points:
+    pt['point'] = (np.array(pt['point'])-origin).tolist()
 
 # Find grasps and releases
 traj_group_idx = [0]
@@ -221,6 +237,18 @@ if plots_on:
     plt.ion()
     ax=plt.gca()
     ax.set_aspect('equal', 'box')
+    plt.title("Plane Distance: %0.3f(m)"%(plane_dist/1000.0))
+    if operating_plane=='xy':
+        plt.xlabel('x')
+        plt.ylabel('y')
+
+    if operating_plane=='xz':
+        plt.xlabel('x')
+        plt.ylabel('z')
+
+    if operating_plane=='yz':
+        plt.xlabel('y')
+        plt.ylabel('z')
     plt.show()
     fig.canvas.draw()
     time.sleep(0.3)
@@ -240,6 +268,11 @@ if plots_on:
 
     plt.ioff()
     plt.show()
+
+for traj_group in traj_groups:
+    for traj in traj_group:
+        traj['position'][:,0] = -traj['position'][:,0]
+
 
 # Format trajectories
 trajectory_fmt = {}
