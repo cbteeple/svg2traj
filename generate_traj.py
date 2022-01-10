@@ -123,12 +123,12 @@ def find_order(paths, start, tol=0.001):
 
 
 # Load the image
-image_file='test_traj.svg'
-out_file ='../hand_arm_cbt/traj_setup/rethi/tasks/flip_handle.yaml'
+image_file='insert_press.svg'
+out_file ='../hand_arm_cbt/traj_setup/rethi/tasks/insert_press.yaml'
 paths, attributes, svg_attributes = svgpathtools.svg2paths2(image_file)
 plots_on=True
 operating_plane = 'xz'
-plane_dist = 250
+plane_dist = 300
 unit_conversion = 0.001 # [mm to m]
 
 
@@ -161,7 +161,7 @@ for path, attr in zip(paths,attributes):
                 
                 xy_pts.extend(entity.point(span))
 
-                if 'normalXXX' in line_type:
+                if 'normal' in line_type:
                     normals = entity.normal(span)
                     angles = [np.arctan2(-normal.imag, normal.real) for normal in normals]
                     rot_pts_deg = np.rad2deg(angles)
