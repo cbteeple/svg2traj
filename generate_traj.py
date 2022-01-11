@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import copy
 import time
 import yaml
+import os
 
 
 RED   = (255,0,0)
@@ -123,13 +124,15 @@ def find_order(paths, start, tol=0.001):
 
 
 # Load the image
-image_file='insert_press.svg'
-out_file ='../hand_arm_cbt/traj_setup/rethi/tasks/insert_press.yaml'
+image_file='push_handle_up.svg'
+plane_dist = 370
+out_file =os.path.join('../hand_arm_cbt/traj_setup/rethi/tasks',image_file.replace('.svg','.yaml'))
 paths, attributes, svg_attributes = svgpathtools.svg2paths2(image_file)
 plots_on=True
 operating_plane = 'xz'
-plane_dist = 300
 unit_conversion = 0.001 # [mm to m]
+gripper_rot1 = 90.0 # [deg]
+gripper_rot2 = 0.0 # [deg]
 
 
 # Generate a set of trajectories
@@ -204,7 +207,7 @@ for pt in special_points:
         break
 
 if start_point is not None:
-    trajectories = find_order(trajectories,start_point)
+    trajectories = find_order(trajectories,start_point, 0.003)
 
 for traj in trajectories:
     traj['position'] = traj['position']-origin
@@ -286,17 +289,17 @@ for group_idx, traj_group in enumerate(traj_groups):
             if operating_plane=='xy':
                 pos_out= pos
                 pos_out.insert(2,plane_dist)
-                ori_out = [0,0, ori]
+                ori_out = [gripper_rot1,gripper_rot2, ori]
 
             if operating_plane=='xz':
                 pos_out= pos
                 pos_out.insert(1,plane_dist)
-                ori_out = [0,ori,0]
+                ori_out = [gripper_rot1,ori,gripper_rot2]
 
             if operating_plane=='yz':
                 pos_out= pos
                 pos_out.insert(0,plane_dist)
-                ori_out = [ori,0,0]
+                ori_out = [ori,gripper_rot1,gripper_rot2]
 
 
             pos_out=(np.array(pos_out)*unit_conversion).tolist()
